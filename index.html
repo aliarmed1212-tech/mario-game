@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111e2b">
+<title>Skybound Run — Monster Realms</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #111e2b;
+    --text: #f1f7ff;
+    --muted: #a1b5c8;
+    --gold: #ffd379;
+    --line: #ffffff18;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  body {
+    margin: 0;
+    min-height: 100svh;
+    padding: 16px;
+    color: var(--text);
+    background:
+      radial-gradient(ellipse at 15% 0%, #294759, transparent 50%),
+      radial-gradient(ellipse at 90% 100%, #302e43, transparent 50%),
+      var(--bg);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  button:focus-visible, canvas:focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 4px;
+  }
+
+  .app { max-width: 2560px; margin: auto; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .brand { display: flex; align-items: center; gap: 11px; }
+
+  .brand-icon {
+    width: 43px;
+    height: 43px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--gold);
+    color: #62461e;
+    font-size: 26px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 950;
+    letter-spacing: .1em;
+  }
+
+  .subtitle {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: .2em;
+  }
+
+  .stats, .tools { display: flex; align-items: center; gap: 7px; }
+
+  .stat {
+    min-width: 79px;
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff05;
+  }
+
+  .stat small {
+    display: block;
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: .15em;
+  }
+
+  .stat strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 16px;
+  }
+
+  #health { color: #ff9b9b; letter-spacing: 1px; }
+  #coins { color: var(--gold); }
+
+  .tool {
+    min-height: 43px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff07;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 800;
+    transition: background 150ms, transform 150ms;
+  }
+
+  .tool:hover:not(:disabled) { background: #ffffff15; }
+  .tool:active:not(:disabled) { transform: scale(.96); }
+  .tool:disabled { opacity: .35; cursor: default; }
+
+  .stage {
+    position: relative;
+    height: clamp(350px, 72svh, 760px);
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 21px;
+    background: #9cd9e1;
+    box-shadow: 0 24px 75px #0004, 0 0 0 1px #ffffff20;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+
+  .world-label {
+    position: absolute;
+    top: 16px;
+    left: 18px;
+    padding: 10px 12px;
+    border: 1px solid #ffffff20;
+    border-radius: 11px;
+    background: #172c3bc9;
+    pointer-events: none;
+  }
+
+  .world-label small {
+    display: block;
+    color: #bcd7dc;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .16em;
+  }
+
+  .world-label strong {
+    display: block;
+    margin-top: 3px;
+    font-size: 13px;
+  }
+
+  .progress {
+    position: absolute;
+    top: 24px;
+    right: 18px;
+    width: min(170px, 20%);
+    height: 7px;
+    border: 1px solid #ffffff85;
+    border-radius: 10px;
+    background: #162b4140;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  #progressFill {
+    height: 100%;
+    background: var(--gold);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  .boss-hud {
+    position: absolute;
+    z-index: 2;
+    top: 16px;
+    left: 50%;
+    width: min(410px, 43%);
+    transform: translateX(-50%);
+    padding: 11px 14px;
+    border: 1px solid #ffffff28;
+    border-radius: 13px;
+    background: #192336eF;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .boss-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .boss-track {
+    height: 10px;
+    margin: 8px 0 6px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #ffffff12;
+  }
+
+  #bossFill {
+    height: 100%;
+    background: linear-gradient(90deg, #ed7175, #ffb377);
+    transform-origin: left;
+    transition: transform 120ms;
+  }
+
+  #bossHint {
+    color: #ffd989;
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .08em;
+  }
+
+  .toast {
+    position: absolute;
+    z-index: 3;
+    top: 112px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 90%;
+    padding: 10px 17px;
+    border: 1px solid #ffffff30;
+    border-radius: 30px;
+    background: #182c3aeF;
+    color: white;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 750;
+    pointer-events: none;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: #152c4050;
+    overflow-y: auto;
+  }
+
+  .panel {
+    width: min(470px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 28px;
+    border: 1px solid #ffffffa0;
+    border-radius: 23px;
+    background: #f8fcfff7;
+    color: #233f50;
+    text-align: center;
+    box-shadow: 0 20px 65px #0d283b40;
+    animation: arrive 220ms ease-out;
+  }
+
+  .eyebrow {
+    margin: 0 0 9px;
+    color: #458c80;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .19em;
+    text-transform: uppercase;
+  }
+
+  .panel h2 {
+    margin: 0;
+    font-size: clamp(29px, 4vw, 43px);
+    line-height: 1.06;
+    font-weight: 950;
+    letter-spacing: -.05em;
+  }
+
+  .description {
+    margin: 14px auto 19px;
+    max-width: 355px;
+    color: #627b8a;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .features {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .features span {
+    padding: 6px 9px;
+    border-radius: 8px;
+    background: #e8f1f1;
+    color: #527870;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .results {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 13px 4px;
+    margin-bottom: 19px;
+    border: 1px solid #dde9ed;
+    border-radius: 13px;
+    background: #edf5f6;
+  }
+
+  .results small {
+    display: block;
+    color: #6a8390;
+    font-size: 9px;
+    letter-spacing: .06em;
+  }
+
+  .results strong { display: block; margin-top: 4px; font-size: 21px; }
+
+  .primary {
+    width: 100%;
+    min-height: 49px;
+    border: 0;
+    border-radius: 13px;
+    background: var(--gold);
+    color: #5d451b;
+    font-weight: 950;
+    box-shadow: 0 4px 0 #d4a34c;
+  }
+
+  .primary:hover { background: #ffdfa0; }
+  .primary:active { transform: translateY(3px); box-shadow: 0 1px 0 #d4a34c; }
+
+  .panel-hint {
+    margin: 15px 0 0;
+    font-size: 10px;
+    color: #7b909c;
+    line-height: 1.5;
+  }
+
+  .bottom {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 2px 0;
+    color: var(--muted);
+    font-size: 10px;
+  }
+
+  kbd {
+    padding: 2px 5px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #ffffff05;
+    color: #dce9f4;
+    font: inherit;
+  }
+
+  .touch-controls {
+    display: none;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 12px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .touch-group { display: flex; gap: 8px; }
+
+  .touch {
+    width: 58px;
+    height: 54px;
+    border: 1px solid #ffffff24;
+    border-radius: 15px;
+    background: #263d4e;
+    color: white;
+    font-size: 21px;
+    font-weight: 900;
+    touch-action: none;
+  }
+
+  .touch[data-control="run"] { font-size: 11px; }
+
+  .touch[data-control="jump"] {
+    width: 87px;
+    background: var(--gold);
+    color: #654a1c;
+    font-size: 12px;
+  }
+
+  .touch.active { filter: brightness(1.2); transform: translateY(2px); }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+  }
+
+  @keyframes arrive {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (pointer: coarse) {
+    .touch-controls { display: flex; }
+    .stage { height: clamp(330px, 61svh, 660px); }
+    .keyboard-help { display: none; }
+  }
+
+  @media (max-width: 760px) {
+    body { padding: 9px; }
+    .topbar { gap: 9px; margin-bottom: 10px; }
+    h1 { font-size: 13px; }
+    .subtitle { font-size: 8px; }
+    .brand-icon { width: 35px; height: 35px; font-size: 22px; }
+    .stats { order: 3; width: 100%; gap: 5px; }
+    .stat { flex: 1; min-width: 0; padding: 6px 8px; }
+    .stat strong { font-size: 13px; }
+    .tool { padding: 0 9px; min-height: 39px; font-size: 10px; }
+    .stage { border-radius: 15px; }
+    .world-label { top: 10px; left: 10px; padding: 7px 9px; }
+    .world-label strong { font-size: 11px; }
+    .boss-hud { top: 65px; width: 78%; padding: 8px 11px; }
+    .toast { top: 154px; width: max-content; max-width: 90%; }
+    .panel { padding: 22px; }
+    .progress { top: 20px; right: 12px; }
+  }
+
+  @media (max-height: 550px) and (orientation: landscape) {
+    body { padding: 7px; }
+    .brand-icon, .subtitle, .bottom { display: none; }
+    .topbar { margin-bottom: 7px; }
+    .stats { order: initial; width: auto; }
+    .stat { min-width: 64px; padding: 4px 7px; }
+    .stage { height: 66svh; min-height: 230px; }
+    .touch-controls { padding-top: 7px; }
+    .touch { height: 41px; }
+    .panel { padding: 15px 20px; }
+    .panel h2 { font-size: 28px; }
+    .description { margin: 8px auto 12px; }
+    .features, .panel-hint { display: none; }
+    .boss-hud { top: 10px; width: 42%; }
+    .toast { top: 93px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+</head>
+
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">✦</div>
+      <div>
+        <h1>SKYBOUND RUN</h1>
+        <div class="subtitle">MONSTER REALMS</div>
+      </div>
+    </div>
+
+    <div class="stats" aria-label="Game statistics">
+      <div class="stat"><small>HEALTH</small><strong id="health">♥♥♥♥♥</strong></div>
+      <div class="stat"><small>LEVEL</small><strong id="level">1 / 3</strong></div>
+      <div class="stat"><small>COINS</small><strong id="coins">0</strong></div>
+      <div class="stat"><small>SCORE</small><strong id="score">000000</strong></div>
+      <div class="stat"><small>TIME</small><strong id="time">0:00</strong></div>
+    </div>
+
+    <div class="tools">
+      <button id="soundButton" class="tool" aria-pressed="true">Sound on</button>
+      <button id="pauseButton" class="tool" disabled>Pause</button>
+    </div>
+  </header>
+
+  <section class="stage">
+    <canvas id="game" tabindex="0"
+      aria-label="Skybound Run platform game"
+      aria-describedby="instructions">
+      Your browser needs HTML canvas support to play.
+    </canvas>
+
+    <div class="world-label">
+      <small id="worldNumber">REALM 01</small>
+      <strong id="worldName">Sunrise Wilds</strong>
+    </div>
+
+    <div class="progress" aria-hidden="true"><div id="progressFill"></div></div>
+
+    <div id="bossHUD" class="boss-hud" hidden>
+      <div class="boss-title">
+        <span id="bossName">BOSS</span>
+        <span id="bossHealth">5 / 5</span>
+      </div>
+      <div class="boss-track"><div id="bossFill"></div></div>
+      <div id="bossHint">WATCH THE WARNING</div>
+    </div>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+
+    <div id="overlay" class="overlay">
+      <section class="panel" aria-labelledby="panelTitle">
+        <p id="eyebrow" class="eyebrow">Three realms. Three guardians.</p>
+        <h2 id="panelTitle">Small hero.<br>Monstrous adventure.</h2>
+        <p id="description" class="description">
+          Explore three dangerous worlds. Dodge spike beasts, stomp monsters,
+          and defeat each guardian to unlock the next realm.
+        </p>
+
+        <div id="features" class="features">
+          <span>Double jump</span>
+          <span>4 enemy types</span>
+          <span>3 boss battles</span>
+          <span>Checkpoints</span>
+        </div>
+
+        <div id="results" class="results" hidden>
+          <div><small>SCORE</small><strong id="finalScore">0</strong></div>
+          <div><small>BEST</small><strong id="finalBest">0</strong></div>
+          <div><small>COINS</small><strong id="finalCoins">0</strong></div>
+        </div>
+
+        <button id="actionButton" class="primary">Begin adventure →</button>
+        <p id="panelHint" class="panel-hint">
+          Hold jump for height. Jump again in midair.<br>
+          Stomp a boss only when its crown glows gold.
+        </p>
+      </section>
+    </div>
+  </section>
+
+  <div class="touch-controls" aria-label="Touch controls">
+    <div class="touch-group">
+      <button class="touch" data-control="left" aria-label="Move left">←</button>
+      <button class="touch" data-control="right" aria-label="Move right">→</button>
+    </div>
+    <div class="touch-group">
+      <button class="touch" data-control="run" aria-label="Hold to sprint">RUN</button>
+      <button class="touch" data-control="jump" aria-label="Jump">JUMP ↑</button>
+    </div>
+  </div>
+
+  <footer id="instructions" class="bottom">
+    <span class="keyboard-help">
+      <kbd>A</kbd> <kbd>D</kbd> move ·
+      <kbd>Space</kbd> double jump ·
+      <kbd>Shift</kbd> sprint ·
+      <kbd>P</kbd> pause ·
+      <kbd>R</kbd> retry level
+    </span>
+    <span>Spikes: dodge. Golden boss crown: stomp.</span>
+    <span id="bestLabel">Best: 0</span>
+  </footer>
+
+  <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+  const canvas = $("game");
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    $("panelTitle").textContent = "Canvas unavailable";
+    $("description").textContent = "Open this game in a modern browser.";
+    $("actionButton").disabled = true;
+    return;
+  }
+
+  const H = 600;
+  const FLOOR = 510;
+  const STEP = 1 / 120;
+  const GRAVITY = 1900;
+  const MAX_HEALTH = 5;
+
+  const LEVELS = [
+    {
+      name: "Sunrise Wilds",
+      length: 5600,
+      gaps: [[1280,1420], [2620,2770], [3890,4050]],
+      sky: ["#80cddd", "#d8efdb"],
+      hills: ["#a2cbb9", "#7cb398", "#549d7d"],
+      dirt: "#ba9167", soil: "#cea87b", grass: "#8aca77",
+      boss: "THE STONE WARDEN",
+      kind: "warden", hp: 5, bossColor: "#7c998b",
+      tip: "Jump over the shockwaves. Stomp the golden crown during recovery."
+    },
+    {
+      name: "Moonveil Heights",
+      length: 6500,
+      gaps: [[1080,1260], [2360,2550], [3580,3780], [4760,4960]],
+      sky: ["#3c527e", "#a5bad0"],
+      hills: ["#657b9c", "#536f8a", "#425f7a"],
+      dirt: "#72768b", soil: "#9193a7", grass: "#8ab8c0",
+      boss: "THE STORM HARPY",
+      kind: "harpy", hp: 6, bossColor: "#9283c7",
+      tip: "Dodge the feather volleys. Double-jump onto the crown when it descends."
+    },
+    {
+      name: "Emberfall Citadel",
+      length: 7600,
+      gaps: [[1040,1240], [2180,2390], [3400,3620],
+        [4630,4830], [5730,5950]],
+      sky: ["#a76775", "#f2be95"],
+      hills: ["#b48c94", "#976d7d", "#785e73"],
+      dirt: "#8f6e72", soil: "#ae8584", grass: "#d4a279",
+      boss: "THE EMBER KING",
+      kind: "ember", hp: 8, bossColor: "#b66359",
+      tip: "Watch for fireballs and flame waves. The king grows faster below half health."
+    }
+  ];
+
+  const ui = {
+    health: $("health"), level: $("level"), coins: $("coins"),
+    score: $("score"), time: $("time"),
+    overlay: $("overlay"), title: $("panelTitle"),
+    description: $("description"), eyebrow: $("eyebrow"),
+    action: $("actionButton"), hint: $("panelHint"),
+    results: $("results"), features: $("features"),
+    toast: $("toast"), sound: $("soundButton"), pause: $("pauseButton"),
+    bossHUD: $("bossHUD"), bossName: $("bossName"),
+    bossHealth: $("bossHealth"), bossFill: $("bossFill"),
+    bossHint: $("bossHint"), progress: $("progressFill")
+  };
+
+  const storage = {
+    read(key, fallback) {
+      try { return localStorage.getItem(key) ?? fallback; }
+      catch { return fallback; }
+    },
+    write(key, value) {
+      try { localStorage.setItem(key, String(value)); }
+      catch { /* The game also works without storage. */ }
+    }
+  };
+
+  const savedBest = Number(storage.read("skybound.realms.best.v1", "0"));
+  let best = Number.isSafeInteger(savedBest) && savedBest >= 0 ? savedBest : 0;
+  let muted = storage.read("skybound.realms.muted.v1", "false") === "true";
+
+  const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+  let reducedMotion = motionQuery.matches;
+  motionQuery.addEventListener?.("change", e => { reducedMotion = e.matches; });
+
+  let state = "ready";
+  let levelIndex = 0;
+  let level = LEVELS[0];
+  let viewWidth = 1200;
+  let scale = 1;
+  let camera = 0;
+  let lastFrame = performance.now();
+  let accumulator = 0;
+  let elapsed = 0;
+  let time = 0;
+  let score = 0;
+  let coinCount = 0;
+  let health = MAX_HEALTH;
+  let levelStart = { score: 0, coins: 0 };
+  let checkpointX = 130;
+  let arenaActive = false;
+  let jumpBuffer = 0;
+  let shake = 0;
+  let toastTime = 0;
+  let audio = null;
+  let lastSecond = -1;
+  let bossUIKey = "";
+
+  let platforms = [];
+  let coins = [];
+  let enemies = [];
+  let projectiles = [];
+  let checkpoints = [];
+  let particles = [];
+  let labels = [];
+  let decorations = [];
+  let segments = [];
+  let boss;
+
+  const held = new Map();
+
+  const player = {
+    x: 130, y: FLOOR - 44, w: 30, h: 44,
+    vx: 0, vy: 0, grounded: true, coyote: .12,
+    jumps: 0, facing: 1, invulnerable: 0,
+    stride: 0, previousBottom: FLOOR
+  };
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const approach = (v, target, amount) =>
+    v < target ? Math.min(target, v + amount) : Math.max(target, v - amount);
+
+  const overlaps = (a, b) =>
+    a.x < b.x + b.w && a.x + a.w > b.x &&
+    a.y < b.y + b.h && a.y + a.h > b.y;
+
+  function circleHitsRect(x, y, r, rect) {
+    const dx = x - clamp(x, rect.x, rect.x + rect.w);
+    const dy = y - clamp(y, rect.y, rect.y + rect.h);
+    return dx * dx + dy * dy <= r * r;
+  }
+
+  function formatTime(seconds) {
+    const s = Math.floor(seconds);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }
+
+  function announce(text) { $("announcement").textContent = text; }
+
+  function notify(text, duration = 3.5) {
+    ui.toast.textContent = text;
+    ui.toast.hidden = false;
+    toastTime = duration;
+  }
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    viewWidth = rect.width / Math.max(1, rect.height) * H;
+    scale = canvas.height / H;
+    camera = clamp(camera, 0, Math.max(0, level.length - viewWidth));
+  }
+
+  if ("ResizeObserver" in window) new ResizeObserver(resize).observe(canvas);
+  else window.addEventListener("resize", resize);
+  resize();
+
+  // Audio uses local oscillators, not external files.
+  function unlockAudio() {
+    if (muted) return;
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      if (!audio) audio = new Audio();
+      if (audio.state === "suspended") audio.resume().catch(() => {});
+    } catch {}
+  }
+
+  function tone(from, to, duration, type = "sine", volume = .045, delay = 0) {
+    if (muted || !audio || audio.state !== "running") return;
+    const at = audio.currentTime + delay;
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(from, at);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, to), at + duration);
+    gain.gain.setValueAtTime(0, at);
+    gain.gain.linearRampToValueAtTime(volume, at + .008);
+    gain.gain.exponentialRampToValueAtTime(.001, at + duration);
+
+    oscillator.connect(gain);
+    gain.connect(audio.destination);
+    oscillator.start(at);
+    oscillator.stop(at + duration + .025);
+    oscillator.onended = () => {
+      oscillator.disconnect();
+      gain.disconnect();
+    };
+  }
+
+  function sound(name) {
+    if (name === "jump") tone(260, 650, .13, "triangle", .055);
+    if (name === "double") tone(450, 950, .16, "triangle", .055);
+    if (name === "coin") {
+      tone(880, 880, .065);
+      tone(1320, 1320, .13, "sine", .04, .05);
+    }
+    if (name === "hit") tone(200, 50, .24, "sawtooth", .035);
+    if (name === "stomp") tone(170, 60, .12, "triangle", .075);
+    if (name === "shot") tone(430, 150, .1, "triangle", .025);
+    if (name === "bossHit") tone(90, 330, .2, "triangle", .075);
+    if (name === "slam") tone(100, 30, .2, "triangle", .08);
+    if (name === "checkpoint" || name === "win") {
+      const notes = name === "win" ? [523,659,784,1047,1319] : [659,880,1047];
+      notes.forEach((n, i) => tone(n, n, .2, "sine", .05, i * .09));
+    }
+  }
+
+  function syncSound() {
+    ui.sound.textContent = muted ? "Sound off" : "Sound on";
+    ui.sound.setAttribute("aria-pressed", String(!muted));
+  }
+
+  function toggleSound() {
+    muted = !muted;
+    storage.write("skybound.realms.muted.v1", muted);
+    syncSound();
+    if (!muted) unlockAudio();
+  }
+
+  function syncHUD() {
+    ui.health.textContent = "♥".repeat(health) + "♡".repeat(MAX_HEALTH - health);
+    ui.health.setAttribute("aria-label", `${health} of ${MAX_HEALTH} hearts`);
+    ui.level.textContent = `${levelIndex + 1} / ${LEVELS.length}`;
+    ui.coins.textContent = coinCount;
+    ui.score.textContent = String(score).padStart(6, "0");
+    $("bestLabel").textContent = `Best: ${best.toLocaleString()}`;
+  }
+
+  function syncPause() {
+    ui.pause.disabled = !["playing", "paused"].includes(state);
+    ui.pause.textContent = state === "paused" ? "Resume" : "Pause";
+  }
+
+  function updateBest() {
+    if (score > best) {
+      best = score;
+      storage.write("skybound.realms.best.v1", best);
+    }
+  }
+
+  function addPlatform(x, y, w, type = "grass") {
+    const p = { x, y, w, h: type === "bonus" ? 44 : 28, type, used: false, bump: 0 };
+    platforms.push(p);
+    return p;
+  }
+
+  function addCoin(x, y) {
+    coins.push({ x, y, taken: false, phase: x * .027 });
+  }
+
+  function addEnemy(kind, x, y, left, right) {
+    const dimensions = {
+      walker: [36,31], spike: [42,33], flyer: [38,30], sentry: [38,43]
+    };
+    const [w, h] = dimensions[kind];
+
+    enemies.push({
+      kind, x, y, w, h, left, right,
+      baseX: x, baseY: y,
+      vx: kind === "spike" ? 65 : 58 + levelIndex * 10,
+      hp: kind === "sentry" ? 2 : 1,
+      alive: true, invulnerable: 0,
+      phase: x * .017, clock: 0,
+      cooldown: 1.2 + Math.abs(Math.sin(x)) * 1.1,
+      mode: "patrol", chargeDirection: 1
+    });
+  }
+
+  function buildWorld() {
+    platforms = [];
+    coins = [];
+    enemies = [];
+    projectiles = [];
+    checkpoints = [];
+    decorations = [];
+    particles = [];
+    labels = [];
+    segments = [];
+
+    let start = 0;
+    for (const [left, right] of level.gaps) {
+      segments.push([start, left]);
+      start = right;
+    }
+    segments.push([start, level.length]);
+
+    const arena = level.length - 1000;
+
+    segments.forEach(([a, b], index) => {
+      platforms.push({
+        x: a, y: FLOOR, w: b - a, h: 300,
+        type: "ground", bump: 0
+      });
+
+      const safeEnd = Math.min(b - 50, arena - 170);
+
+      if (safeEnd - a > 400) {
+        const placements = [
+          [a + 270, 412, 160],
+          [a + 550, 326, 150],
+          [a + 820, 406, 145]
+        ];
+
+        placements.forEach(([x, y, w], platformIndex) => {
+          if (x + w > safeEnd) return;
+          const p = addPlatform(x, y, w);
+          for (let cx = x + 22; cx < x + w - 12; cx += 34) addCoin(cx, y - 27);
+
+          if (platformIndex === 1 && (levelIndex > 0 || index >= 2)) {
+            addEnemy("sentry", p.x + p.w / 2 - 19, p.y - 43, p.x, p.x + p.w);
+          }
+        });
+
+        if (a + 515 < safeEnd) {
+          addPlatform(a + 440, 400, 44, "bonus");
+          addPlatform(a + 484, 400, 44, "bonus");
+        }
+
+        for (let i = 0; i < 6 && a + 135 + i * 32 < safeEnd; i++) {
+          addCoin(a + 135 + i * 32, FLOOR - 34);
+        }
+
+        if (a + 760 < safeEnd) {
+          addEnemy("walker", a + 710, FLOOR - 31,
+            a + 580, Math.min(safeEnd, a + 1020));
+        }
+
+        if (a + 950 < safeEnd && (index > 0 || levelIndex > 0)) {
+          addEnemy("spike", a + 900, FLOOR - 33,
+            a + 770, Math.min(safeEnd, a + 1120));
+        }
+
+        if (a + 720 < safeEnd && (index % 2 === 1 || levelIndex > 0)) {
+          addEnemy("flyer", a + 640, 327,
+            a + 500, Math.min(safeEnd, a + 900));
+        }
+      }
+
+      if (index > 0 && index % 2 === 0 && a + 80 < arena - 220) {
+        checkpoints.push({ x: a + 80, active: false });
+      }
+
+      for (let x = a + 50; x < b - 40; x += 170) {
+        if (x > arena - 30) break;
+        decorations.push({
+          x, kind: Math.floor(x / 170) % 3,
+          size: .7 + (Math.sin(x * 3.7) + 1) * .23
+        });
+      }
+    });
+
+    level.gaps.forEach(([a, b]) => {
+      for (let i = 1; i <= 5; i++) {
+        const t = i / 6;
+        addCoin(a + (b - a) * t, FLOOR - 80 - Math.sin(t * Math.PI) * 55);
+      }
+    });
+
+    checkpoints.push({ x: arena - 130, active: false });
+
+    boss = {
+      kind: level.kind, name: level.boss,
+      x: arena + 540,
+      y: level.kind === "harpy" ? FLOOR - 160 : FLOOR - 112,
+      w: level.kind === "harpy" ? 112 : 104,
+      h: level.kind === "harpy" ? 84 : 112,
+      hp: level.hp, maxHP: level.hp,
+      phase: "windup", clock: 0, cycle: 0,
+      shotAt: 0, invulnerable: 0,
+      alive: true, arena, life: 0
+    };
+
+    bossUIKey = "";
+  }
+
+  function clearInputs() {
+    held.clear();
+    jumpBuffer = 0;
+    document.querySelectorAll(".touch").forEach(el => el.classList.remove("active"));
+  }
+
+  function down(action) {
+    for (const value of held.values()) if (value === action) return true;
+    return false;
+  }
+
+  function respawn() {
+    const spawnX = arenaActive && boss.alive ? boss.arena + 80 : checkpointX;
+    Object.assign(player, {
+      x: spawnX, y: FLOOR - player.h,
+      vx: 0, vy: 0, grounded: true, coyote: .12,
+      jumps: 0, facing: 1, invulnerable: 2,
+      previousBottom: FLOOR
+    });
+    projectiles = [];
+    jumpBuffer = 0;
+    camera = clamp(player.x - viewWidth * .34, 0, Math.max(0, level.length - viewWidth));
+  }
+
+  function beginLevel(index, retry = false) {
+    unlockAudio();
+    clearInputs();
+
+    if (retry) {
+      score = levelStart.score;
+      coinCount = levelStart.coins;
+    } else {
+      levelStart = { score, coins: coinCount };
+    }
+
+    levelIndex = index;
+    level = LEVELS[index];
+    health = MAX_HEALTH;
+    checkpointX = 130;
+    arenaActive = false;
+    shake = 0;
+
+    buildWorld();
+    respawn();
+    player.invulnerable = 0;
+
+    state = "playing";
+    accumulator = 0;
+    lastFrame = performance.now();
+    lastSecond = -1;
+
+    ui.overlay.hidden = true;
+    ui.bossHUD.hidden = true;
+    ui.progress.style.transform = "scaleX(0)";
+    $("worldNumber").textContent = `REALM ${String(index + 1).padStart(2, "0")}`;
+    $("worldName").textContent = level.name;
+
+    syncHUD();
+    syncPause();
+    canvas.focus({ preventScroll: true });
+
+    notify(index === 0
+      ? "Double-jump to explore. Avoid the orange spike beasts."
+      : `${level.name} · Five hearts restored. A stronger guardian awaits.`, 4);
+
+    announce(`Level ${index + 1}: ${level.name}. Five hearts.`);
+  }
+
+  function startCampaign() {
+    score = 0;
+    coinCount = 0;
+    elapsed = 0;
+    beginLevel(0);
+  }
+
+  function retryLevel() {
+    if (state === "ready" || state === "victory") startCampaign();
+    else beginLevel(levelIndex, true);
+  }
+
+  function showPanel(kind) {
+    ui.overlay.hidden = false;
+    ui.features.hidden = true;
+    ui.results.hidden = kind === "paused";
+
+    if (kind === "paused") {
+      ui.eyebrow.textContent = "The realms can wait";
+      ui.title.textContent = "Adventure paused.";
+      ui.description.textContent = "Your current run is paused. Resume when you’re ready.";
+      ui.action.textContent = "Continue adventure →";
+      ui.hint.textContent = "Press P or select Continue";
+    } else if (kind === "levelclear") {
+      ui.eyebrow.textContent = `Realm ${levelIndex + 1} conquered`;
+      ui.title.textContent = "The path is open.";
+      ui.description.textContent =
+        `${level.boss} has fallen. Next: ${LEVELS[levelIndex + 1].name}.`;
+      ui.action.textContent = `Enter realm ${levelIndex + 2} →`;
+      ui.hint.textContent = "Your score carries forward. Health resets to five hearts.";
+    } else if (kind === "victory") {
+      ui.eyebrow.textContent = "All three guardians defeated";
+      ui.title.textContent = "The realms are free.";
+      ui.description.textContent =
+        `You finished the adventure in ${formatTime(elapsed)} and collected ${coinCount} coins.`;
+      ui.action.textContent = "Play a new adventure →";
+      ui.hint.textContent = "Try different routes to improve your score.";
+    } else {
+      ui.eyebrow.textContent = "A setback, not the end";
+      ui.title.textContent = "Rise and try again.";
+      ui.description.textContent =
+        `Retry ${level.name}. Your score and coins return to their values at the start of this level.`;
+      ui.action.textContent = "Retry this level →";
+      ui.hint.textContent = "Bosses are vulnerable only while their crowns glow gold.";
+    }
+
+    $("finalScore").textContent = score.toLocaleString();
+    $("finalBest").textContent = best.toLocaleString();
+    $("finalCoins").textContent = coinCount;
+    ui.action.focus({ preventScroll: true });
+  }
+
+  function primaryAction() {
+    if (state === "paused") resumeGame();
+    else if (state === "levelclear") beginLevel(levelIndex + 1);
+    else if (state === "gameover") retryLevel();
+    else if (state === "ready" || state === "victory") startCampaign();
+  }
+
+  function pauseGame() {
+    if (state !== "playing") return;
+    state = "paused";
+    clearInputs();
+    showPanel("paused");
+    syncPause();
+    announce("Game paused.");
+  }
+
+  function resumeGame() {
+    if (state !== "paused") return;
+    unlockAudio();
+    state = "playing";
+    accumulator = 0;
+    lastFrame = performance.now();
+    ui.overlay.hidden = true;
+    syncPause();
+    canvas.focus({ preventScroll: true });
+  }
+
+  function togglePause() {
+    if (state === "playing") pauseGame();
+    else if (state === "paused") resumeGame();
+  }
+
+  function gameOver() {
+    if (state !== "playing") return;
+    state = "gameover";
+    clearInputs();
+    updateBest();
+    syncHUD();
+    syncPause();
+    showPanel("gameover");
+    announce("Game over. You can retry this level.");
+  }
+
+  function clearLevel() {
+    if (state !== "playing") return;
+    score += health * 300;
+    state = levelIndex === LEVELS.length - 1 ? "victory" : "levelclear";
+    clearInputs();
+    updateBest();
+    sound("win");
+    syncHUD();
+    syncPause();
+    showPanel(state);
+    announce(state === "victory" ? "All three levels complete." : "Level complete.");
+  }
+
+  function burst(x, y, count, color, power = 150) {
+    if (reducedMotion) return;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const velocity = power * (.25 + Math.random() * .75);
+      const life = .3 + Math.random() * .45;
+      particles.push({
+        x, y, vx: Math.cos(angle) * velocity, vy: Math.sin(angle) * velocity,
+        size: 2 + Math.random() * 4, color, life, maxLife: life
+      });
+    }
+    if (particles.length > 260) particles.splice(0, particles.length - 260);
+  }
+
+  function label(x, y, text, color = "#fff1bf") {
+    labels.push({ x, y, text, color, life: .9 });
+  }
+
+  function collectCoin(x, y, value = 100) {
+    coinCount++;
+    score += value;
+    sound("coin");
+    burst(x, y, 6, "#ffe391", 110);
+    label(x, y - 14, `+${value}`);
+    syncHUD();
+  }
+
+  function hitBlock(block) {
+    if (block.type !== "bonus" || block.used) return;
+    block.used = true;
+    block.bump = .2;
+    collectCoin(block.x + 22, block.y - 12, 150);
+  }
+
+  function hurt(direction = 0, fell = false) {
+    if (state !== "playing" || (!fell && player.invulnerable > 0)) return;
+
+    health--;
+    sound("hit");
+    shake = reducedMotion ? 0 : 8;
+    burst(player.x + 15, player.y + 20, 16, "#ffd3ae", 210);
+    syncHUD();
+
+    if (health <= 0) {
+      gameOver();
+      return;
+    }
+
+    if (fell) {
+      respawn();
+      notify("Back at your checkpoint. Keep going!");
+    } else {
+      player.invulnerable = 1.65;
+      player.vx = direction * 350;
+      player.vy = -430;
+      player.grounded = false;
+      player.coyote = 0;
+      player.jumps = 1;
+    }
+
+    announce(`${health} hearts remaining.`);
+  }
+
+  function spawnProjectile(x, y, vx, vy, kind = "bolt", r = 10) {
+    projectiles.push({ x, y, vx, vy, kind, r, life: 5.5 });
+    if (projectiles.length > 100) projectiles.shift();
+  }
+
+  function aimedShot(x, y, speed, spread = 0, kind = "bolt") {
+    const angle = Math.atan2(
+      player.y + player.h / 2 - y,
+      player.x + player.w / 2 - x
+    ) + spread;
+    spawnProjectile(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, kind);
+  }
+
+  function updateEnemies(dt) {
+    for (const enemy of enemies) {
+      if (!enemy.alive) continue;
+      enemy.invulnerable = Math.max(0, enemy.invulnerable - dt);
+
+      if (enemy.kind === "flyer") {
+        enemy.x = enemy.baseX + Math.sin(time * 1.4 + enemy.phase) * 100;
+        enemy.y = enemy.baseY + Math.sin(time * 2.4 + enemy.phase) * 37;
+        continue;
+      }
+
+      if (enemy.kind === "sentry") {
+        if (arenaActive || Math.abs(enemy.x - player.x) > 650) continue;
+        enemy.cooldown -= dt;
+        if (enemy.cooldown <= 0) {
+          aimedShot(enemy.x + enemy.w / 2, enemy.y + 16, 215 + levelIndex * 20);
+          enemy.cooldown = 2.8 - levelIndex * .18;
+          sound("shot");
+        }
+        continue;
+      }
+
+      if (enemy.kind === "spike") {
+        enemy.clock -= dt;
+        enemy.cooldown -= dt;
+
+        if (enemy.mode === "patrol" && enemy.cooldown <= 0 &&
+            Math.abs(player.x - enemy.x) < 330 &&
+            Math.abs(player.y - enemy.y) < 95) {
+          enemy.mode = "warning";
+          enemy.clock = .65;
+          enemy.chargeDirection = player.x < enemy.x ? -1 : 1;
+        }
+
+        if (enemy.mode === "warning") {
+          if (enemy.clock <= 0) {
+            enemy.mode = "charge";
+            enemy.clock = .72;
+            enemy.vx = enemy.chargeDirection * (340 + levelIndex * 25);
+          }
+          continue;
+        }
+
+        if (enemy.mode === "charge" && enemy.clock <= 0) {
+          enemy.mode = "patrol";
+          enemy.cooldown = 2.6;
+          enemy.vx = Math.sign(enemy.vx) * 65;
+        }
+      }
+
+      enemy.x += enemy.vx * dt;
+
+      if (enemy.x < enemy.left) {
+        enemy.x = enemy.left;
+        enemy.vx = Math.abs(enemy.vx);
+      }
+      if (enemy.x + enemy.w > enemy.right) {
+        enemy.x = enemy.right - enemy.w;
+        enemy.vx = -Math.abs(enemy.vx);
+      }
+    }
+  }
+
+  function bossAttack() {
+    const x = boss.x + boss.w / 2;
+    const y = boss.y + boss.h / 2;
+    const angry = boss.kind === "ember" && boss.hp <= boss.maxHP / 2;
+
+    if (boss.kind === "warden") {
+      spawnProjectile(x, FLOOR - 13, -260, 0, "wave", 13);
+      spawnProjectile(x, FLOOR - 13, 260, 0, "wave", 13);
+      burst(x, FLOOR - 3, 12, "#d9e2bd", 160);
+      sound("slam");
+    } else if (boss.kind === "harpy") {
+      [-.23, 0, .23].forEach(spread => aimedShot(x, y, 250, spread, "feather"));
+      sound("shot");
+    } else if (boss.cycle % 2 === 0) {
+      [-.23, 0, .23].forEach(spread =>
+        aimedShot(x, y - 12, angry ? 310 : 270, spread, "fire"));
+      sound("shot");
+    } else {
+      const speed = angry ? 335 : 290;
+      spawnProjectile(x, FLOOR - 14, -speed, 0, "flame", 14);
+      spawnProjectile(x, FLOOR - 14, speed, 0, "flame", 14);
+      aimedShot(x, y, 245, 0, "fire");
+      sound("slam");
+    }
+  }
+
+  function bossWarning() {
+    if (!boss.alive) return "DEFEATED · ENTER THE PORTAL →";
+    if (boss.phase === "rest") return "EXPOSED · STOMP THE GOLDEN CROWN";
+    if (boss.phase === "attack") return "DODGE · THE CROWN IS SHIELDED";
+    if (boss.kind === "warden") return "WARNING · GROUND SHOCKWAVES";
+    if (boss.kind === "harpy") return "WARNING · FEATHER VOLLEY";
+    return boss.cycle % 2 === 0
+      ? "WARNING · FIREBALL VOLLEY"
+      : "WARNING · FLAME WAVES";
+  }
+
+  function syncBossHUD() {
+    if (!arenaActive) return;
+    const hint = bossWarning();
+    const key = `${boss.hp}|${hint}`;
+
+    if (key !== bossUIKey) {
+      bossUIKey = key;
+      ui.bossName.textContent = boss.name;
+      ui.bossHealth.textContent = `${boss.hp} / ${boss.maxHP}`;
+      ui.bossFill.style.transform = `scaleX(${boss.hp / boss.maxHP})`;
+      ui.bossHint.textContent = hint;
+      ui.bossHint.style.color = boss.phase === "rest" || !boss.alive
+        ? "#baf3bb" : "#ffd989";
+    }
+  }
+
+  function updateBoss(dt) {
+    if (!arenaActive || !boss.alive) return;
+
+    boss.life += dt;
+    boss.clock += dt;
+    boss.invulnerable = Math.max(0, boss.invulnerable - dt);
+
+    const angry = boss.kind === "ember" && boss.hp <= boss.maxHP / 2;
+    const durations = {
+      windup: angry ? .85 : 1.15,
+      attack: boss.kind === "ember" ? 2.1 : 1.9,
+      rest: boss.kind === "harpy" ? 3.1 : 2.9
+    };
+
+    if (boss.clock >= durations[boss.phase]) {
+      boss.clock = 0;
+      if (boss.phase === "windup") {
+        boss.phase = "attack";
+        boss.shotAt = 0;
+      } else if (boss.phase === "attack") {
+        boss.phase = "rest";
+      } else {
+        boss.phase = "windup";
+        boss.cycle++;
+      }
+    }
+
+    if (boss.phase === "attack") {
+      if (boss.clock >= boss.shotAt) {
+        bossAttack();
+        boss.shotAt += angry ? .48 : .75;
+      }
+
+      if (boss.kind !== "harpy") {
+        const direction = Math.sign(player.x - boss.x);
+        boss.x += direction * (boss.kind === "ember" ? 105 : 70) * dt;
+      }
+    }
+
+    if (boss.kind === "harpy") {
+      const targetY = boss.phase === "rest"
+        ? FLOOR - 100
+        : FLOOR - 178 + Math.sin(boss.life * 2) * 17;
+      boss.y += (targetY - boss.y) * Math.min(1, dt * 3.5);
+
+      if (boss.phase !== "rest") {
+        boss.x = boss.arena + 520 + Math.sin(boss.life * .9) * 115;
+      }
+    }
+
+    boss.x = clamp(boss.x, boss.arena + 230, level.length - 330);
+    syncBossHUD();
+  }
+
+  function defeatBoss() {
+    boss.alive = false;
+    boss.hp = 0;
+    projectiles = [];
+    const reward = [2000, 3500, 5000][levelIndex];
+    score += reward;
+    health = Math.min(MAX_HEALTH, health + 2);
+    burst(boss.x + boss.w / 2, boss.y + boss.h / 2, 70, "#ffe6a0", 360);
+    label(boss.x + boss.w / 2, boss.y, `BOSS +${reward}`);
+    sound("win");
+    notify("Guardian defeated! Enter the glowing portal on the right.", 6);
+    syncHUD();
+    syncBossHUD();
+    announce(`${boss.name} defeated. Portal unlocked.`);
+  }
+
+  function damageBoss() {
+    if (!boss.alive || boss.phase !== "rest" || boss.invulnerable > 0) return;
+    boss.hp--;
+    boss.invulnerable = .8;
+    shake = reducedMotion ? 0 : 5;
+    burst(boss.x + boss.w / 2, boss.y + 5, 22, "#ffe28d", 220);
+    sound("bossHit");
+    if (boss.hp <= 0) defeatBoss();
+    syncBossHUD();
+  }
+
+  function bounce(power = 505) {
+    player.vy = -power;
+    player.grounded = false;
+    player.coyote = 0;
+    player.jumps = 1;
+  }
+
+  function updatePlayer(dt) {
+    player.invulnerable = Math.max(0, player.invulnerable - dt);
+    player.coyote = Math.max(0, player.coyote - dt);
+    jumpBuffer = Math.max(0, jumpBuffer - dt);
+
+    if (player.grounded) {
+      player.coyote = .12;
+      player.jumps = 0;
+    }
+
+    const direction = Number(down("right")) - Number(down("left"));
+    const topSpeed = down("run") ? 415 : 295;
+
+    if (direction) {
+      player.vx = approach(player.vx, direction * topSpeed,
+        (player.grounded ? 2400 : 1500) * dt);
+      player.facing = direction;
+    } else {
+      player.vx = approach(player.vx, 0, (player.grounded ? 2200 : 520) * dt);
+    }
+
+    if (jumpBuffer > 0 && (player.coyote > 0 || player.jumps < 2)) {
+      const first = player.coyote > 0;
+      player.vy = first ? -675 : -625;
+      player.jumps = first ? 1 : 2;
+      player.coyote = 0;
+      player.grounded = false;
+      jumpBuffer = 0;
+      sound(first ? "jump" : "double");
+      burst(player.x + 15, player.y + player.h, first ? 7 : 15,
+        first ? "#eaf1d4" : "#baf8e8", 125);
+    }
+
+    player.vy = Math.min(1000, player.vy +
+      GRAVITY * (player.vy < 0 && !down("jump") ? 1.85 : 1) * dt);
+
+    player.x += player.vx * dt;
+    player.x = clamp(player.x, 0, level.length - player.w);
+
+    if (arenaActive && boss.alive) {
+      player.x = clamp(player.x, boss.arena + 20, level.length - 220 - player.w);
+    }
+
+    for (const block of platforms) {
+      if (!overlaps(player, block)) continue;
+      if (player.vx > 0) player.x = block.x - player.w;
+      else if (player.vx < 0) player.x = block.x + block.w;
+      player.vx = 0;
+    }
+
+    player.previousBottom = player.y + player.h;
+    player.y += player.vy * dt;
+    player.grounded = false;
+
+    for (const block of platforms) {
+      if (!overlaps(player, block)) continue;
+      if (player.vy > 0) {
+        player.y = block.y - player.h;
+        player.grounded = true;
+        player.coyote = .12;
+        player.jumps = 0;
+      } else if (player.vy < 0) {
+        player.y = block.y + block.h;
+        hitBlock(block);
+      }
+      player.vy = 0;
+    }
+
+    player.stride += Math.abs(player.vx) * dt * .035;
+
+    for (const coin of coins) {
+      if (coin.taken || Math.abs(coin.x - player.x) > 65) continue;
+      if (circleHitsRect(coin.x, coin.y, 12, player)) {
+        coin.taken = true;
+        collectCoin(coin.x, coin.y);
+      }
+    }
+
+    if (player.y > H + 180) {
+      hurt(0, true);
+      return;
+    }
+
+    for (const flag of checkpoints) {
+      if (flag.active || player.x + player.w < flag.x ||
+          player.x > flag.x + 40 || player.y + player.h < FLOOR - 100) continue;
+
+      flag.active = true;
+      checkpointX = flag.x + 48;
+      health = Math.min(MAX_HEALTH, health + 1);
+      score += 250;
+      sound("checkpoint");
+      burst(flag.x, FLOOR - 85, 22, "#b8ffda", 180);
+      notify("Checkpoint saved · +250 points · up to one heart restored");
+      syncHUD();
+    }
+
+    if (!arenaActive && player.x > boss.arena + 35) {
+      arenaActive = true;
+      projectiles = [];
+      player.invulnerable = Math.max(player.invulnerable, .8);
+      ui.bossHUD.hidden = false;
+      notify(level.tip, 5);
+      syncBossHUD();
+      announce(`${boss.name}. ${level.tip}`);
+    }
+
+    if (!boss.alive && player.x > level.length - 150) clearLevel();
+  }
+
+  function handleEnemyCollisions() {
+    for (const enemy of enemies) {
+      if (!enemy.alive || !overlaps(player, enemy)) continue;
+
+      const stomp = player.vy > 0 && player.previousBottom <= enemy.y + 13;
+
+      if (stomp && enemy.kind !== "spike") {
+        player.y = enemy.y - player.h;
+        bounce();
+
+        if (enemy.invulnerable <= 0) {
+          enemy.hp--;
+          enemy.invulnerable = .6;
+          sound("stomp");
+          burst(enemy.x + enemy.w / 2, enemy.y + 12, 12, "#dfd5ff", 165);
+
+          if (enemy.hp <= 0) {
+            enemy.alive = false;
+            const reward = enemy.kind === "sentry" ? 400 : enemy.kind === "flyer" ? 250 : 200;
+            score += reward;
+            label(enemy.x + 15, enemy.y - 10, `+${reward}`);
+            syncHUD();
+          }
+        }
+      } else {
+        hurt(player.x + player.w / 2 < enemy.x + enemy.w / 2 ? -1 : 1);
+        if (state !== "playing") return;
+      }
+    }
+  }
+
+  function handleBossCollision() {
+    if (!arenaActive || !boss.alive || !overlaps(player, boss)) return;
+
+    const stomp = player.vy > 0 && player.previousBottom <= boss.y + 18;
+
+    if (stomp) {
+      player.y = boss.y - player.h;
+      bounce(555);
+      if (boss.phase === "rest") damageBoss();
+      else hurt(player.x < boss.x + boss.w / 2 ? -1 : 1);
+    } else {
+      hurt(player.x + player.w / 2 < boss.x + boss.w / 2 ? -1 : 1);
+    }
+  }
+
+  function updateProjectiles(dt) {
+    for (const shot of projectiles) {
+      shot.x += shot.vx * dt;
+      shot.y += shot.vy * dt;
+      shot.life -= dt;
+
+      if (shot.life <= 0) continue;
+
+      if (circleHitsRect(shot.x, shot.y, shot.r, player)) {
+        shot.life = 0;
+        hurt(shot.vx < 0 ? -1 : 1);
+        if (state !== "playing") break;
+      }
+
+      if (shot.kind !== "wave" && shot.kind !== "flame") {
+        for (const block of platforms) {
+          if (circleHitsRect(shot.x, shot.y, shot.r * .7, block)) {
+            shot.life = 0;
+            break;
+          }
+        }
+      }
+
+      if (shot.x < -100 || shot.x > level.length + 100 || shot.y > H + 100) {
+        shot.life = 0;
+      }
+    }
+
+    projectiles = projectiles.filter(shot => shot.life > 0);
+  }
+
+  function update(dt) {
+    if (state === "paused") return;
+    time += dt;
+
+    particles.forEach(p => {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 450 * dt;
+      p.life -= dt;
+    });
+    particles = particles.filter(p => p.life > 0);
+
+    labels.forEach(item => { item.y -= 35 * dt; item.life -= dt; });
+    labels = labels.filter(item => item.life > 0);
+    platforms.forEach(block => { block.bump = Math.max(0, block.bump - dt); });
+    shake = Math.max(0, shake - 25 * dt);
+
+    if (toastTime > 0) {
+      toastTime -= dt;
+      if (toastTime <= 0) ui.toast.hidden = true;
+    }
+
+    if (state !== "playing") return;
+
+    elapsed += dt;
+    updateEnemies(dt);
+    updateBoss(dt);
+    updatePlayer(dt);
+    if (state !== "playing") return;
+
+    handleEnemyCollisions();
+    if (state !== "playing") return;
+
+    handleBossCollision();
+    if (state !== "playing") return;
+
+    updateProjectiles(dt);
+    if (state !== "playing") return;
+
+    const targetCamera = clamp(
+      player.x + player.w / 2 - viewWidth * .34,
+      0, Math.max(0, level.length - viewWidth)
+    );
+
+    camera = reducedMotion ? targetCamera
+      : camera + (targetCamera - camera) * (1 - Math.exp(-8 * dt));
+
+    if (Math.floor(elapsed) !== lastSecond) {
+      lastSecond = Math.floor(elapsed);
+      ui.time.textContent = formatTime(elapsed);
+    }
+
+    ui.progress.style.transform = `scaleX(${clamp(player.x / (level.length - 150), 0, 1)})`;
+  }
+
+  // ---------- Rendering ----------
+
+  function rounded(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function box(x, y, w, h, r, color) {
+    rounded(x, y, w, h, r);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function ellipse(x, y, rx, ry, color) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function triangle(x1, y1, x2, y2, x3, y3, color) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x3, y3);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function visible(x, width = 0, margin = 100) {
+    return x + width >= camera - margin && x <= camera + viewWidth + margin;
+  }
+
+  function hills(base, amplitude, period, parallax, color) {
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= viewWidth + 12; x += 12) {
+      const v = x + camera * parallax;
+      ctx.lineTo(x, base + Math.sin(v / period) * amplitude +
+        Math.sin(v / (period * .47)) * amplitude * .2);
+    }
+    ctx.lineTo(viewWidth, H);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function cloud(x, y, size) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size, size);
+    ellipse(-25, 5, 36, 17, "#ffffff55");
+    ellipse(0, -9, 34, 29, "#ffffff55");
+    ellipse(31, 5, 31, 19, "#ffffff55");
+    ctx.restore();
+  }
+
+  function drawBackground() {
+    const gradient = ctx.createLinearGradient(0, 0, 0, H);
+    gradient.addColorStop(0, level.sky[0]);
+    gradient.addColorStop(1, level.sky[1]);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, viewWidth, H);
+
+    const sunX = viewWidth * .8 - camera * .01;
+    ellipse(sunX, 115, 64, 64, "#ffefb518");
+    ellipse(sunX, 115, 44, 44, "#ffefb52a");
+    ellipse(sunX, 115, 29, 29, levelIndex === 1 ? "#edf1d7" : "#ffdf9c");
+
+    if (levelIndex === 1) {
+      ctx.fillStyle = "#f0eada99";
+      for (let i = 0; i < 65; i++) {
+        const x = ((i * 137.9 - camera * .06) % viewWidth + viewWidth) % viewWidth;
+        const y = 28 + (i * 73) % 210;
+        ctx.fillRect(x, y, i % 3 === 0 ? 2 : 1, 2);
+      }
+    }
+
+    const offset = camera * .13 + (reducedMotion ? 0 : time * 4);
+    const first = Math.floor(offset / 350) - 1;
+    for (let i = first; i < first + Math.ceil(viewWidth / 350) + 3; i++) {
+      cloud(i * 350 - offset + 120, 110 + Math.abs(i % 4) * 28, .8 + Math.abs(i % 3) * .2);
+    }
+
+    const mountainOffset = camera * .18;
+    for (let i = Math.floor(mountainOffset / 400) - 1;
+         i < Math.ceil((mountainOffset + viewWidth) / 400) + 1; i++) {
+      const x = i * 400 - mountainOffset;
+      const peak = 200 + Math.sin(i * 3.1) * 45;
+      triangle(x - 120, 460, x + 150, peak, x + 440, 460, level.hills[0]);
+    }
+
+    hills(407, 35, 140, .27, level.hills[0]);
+    hills(455, 29, 100, .41, level.hills[1]);
+    hills(504, 19, 73, .58, level.hills[2]);
+  }
+
+  function drawDecoration(item) {
+    if (!visible(item.x, 90)) return;
+    ctx.save();
+    ctx.translate(item.x, FLOOR);
+    ctx.scale(item.size, item.size);
+
+    if (levelIndex === 1 || (levelIndex === 2 && item.kind === 1)) {
+      const color = levelIndex === 1 ? "#91c3d0" : "#edba92";
+      triangle(-16, 0, -9, -57, 10, 0, color);
+      triangle(2, 0, 21, -40, 28, 0, levelIndex === 1 ? "#b5d9db" : "#f9d3a4");
+      triangle(-9, -57, -4, 0, -16, 0, "#ffffff28");
+    } else if (item.kind === 0) {
+      box(-5, -65, 10, 65, 3, "#789278");
+      ellipse(0, -89, 29, 34, level.hills[2]);
+      ellipse(-20, -63, 28, 25, level.hills[1]);
+      ellipse(18, -64, 27, 29, level.grass);
+    } else {
+      ellipse(-13, -7, 20, 12, level.hills[2]);
+      ellipse(7, -12, 24, 17, level.hills[1]);
+      ellipse(26, -6, 18, 10, level.grass);
+    }
+    ctx.restore();
+  }
+
+  function drawPlatform(block) {
+    if (!visible(block.x, block.w)) return;
+    const bump = block.bump > 0 ? Math.sin(block.bump / .2 * Math.PI) * 9 : 0;
+    const y = block.y - bump;
+
+    if (block.type === "ground") {
+      const left = Math.max(block.x, camera - 20);
+      const right = Math.min(block.x + block.w, camera + viewWidth + 20);
+
+      ctx.fillStyle = level.dirt;
+      ctx.fillRect(left, y + 8, right - left, 250);
+      ctx.fillStyle = level.soil;
+      ctx.fillRect(left, y + 11, right - left, 32);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(left, y + 12, right - left, 210);
+      ctx.clip();
+      ctx.fillStyle = "#352a3020";
+      for (let row = 0; row < 4; row++) {
+        const first = Math.floor((left - block.x) / 55) - 1;
+        const last = Math.ceil((right - block.x) / 55);
+        for (let col = first; col <= last; col++) {
+          box(block.x + col * 55 + row % 2 * 22, y + 60 + row * 31,
+            19, 6, 3, "#352a3020");
+        }
+      }
+      ctx.restore();
+
+      ctx.fillStyle = "#324b4855";
+      ctx.fillRect(left, y, right - left, 11);
+      ctx.fillStyle = level.grass;
+      ctx.fillRect(left, y + 2, right - left, 7);
+      ctx.fillStyle = "#fff8c840";
+      ctx.fillRect(left, y, right - left, 3);
+
+      ctx.fillStyle = "#22263725";
+      ctx.fillRect(block.x, y + 10, 7, 130);
+      ctx.fillRect(block.x + block.w - 7, y + 10, 7, 130);
+      return;
+    }
+
+    if (block.type === "bonus") {
+      box(block.x, y, 44, 44, 6, block.used ? "#929c90" : "#b7833c");
+      box(block.x + 3, y + 3, 38, 35, 4, block.used ? "#b5b9a4" : "#f5c66d");
+      ctx.fillStyle = block.used ? "#879181" : "#a6752f";
+      ctx.font = "900 28px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(block.used ? "·" : "?", block.x + 22, y + 30);
+      return;
+    }
+
+    box(block.x, y, block.w, block.h, 6, level.dirt);
+    box(block.x, y, block.w, 10, 5, level.grass);
+    ctx.fillStyle = "#fff4c940";
+    ctx.fillRect(block.x + 4, y + 2, block.w - 8, 3);
+    ctx.fillStyle = "#ffffff20";
+    for (let x = block.x + 10; x < block.x + block.w - 15; x += 30) {
+      ctx.fillRect(x, y + 16, 16, 4);
+    }
+  }
+
+  function drawCoin(coin) {
+    if (coin.taken || !visible(coin.x, 20)) return;
+    const bob = reducedMotion ? 0 : Math.sin(time * 3 + coin.phase) * 3;
+    const width = reducedMotion ? 8 : 3 + Math.abs(Math.cos(time * 2.8 + coin.phase)) * 7;
+    ellipse(coin.x, coin.y + bob, width + 2, 13, "#b78436");
+    ellipse(coin.x, coin.y + bob - 1, width, 11, "#ffd773");
+    box(coin.x - 1, coin.y - 7 + bob, 2, 12, 1, "#fff1b4");
+  }
+
+  function drawEnemy(enemy) {
+    if (!enemy.alive || !visible(enemy.x, enemy.w)) return;
+    ctx.save();
+    if (enemy.invulnerable > 0 && Math.floor(time * 18) % 2 === 0) ctx.globalAlpha = .5;
+
+    const x = enemy.x + enemy.w / 2;
+    const y = enemy.y + enemy.h / 2;
+
+    if (enemy.kind === "walker") {
+      ellipse(x, enemy.y + enemy.h, 19, 4, "#19393825");
+      ellipse(x - 10, enemy.y + enemy.h - 3, 8, 5, "#3b5b53");
+      ellipse(x + 11, enemy.y + enemy.h - 3, 8, 5, "#3b5b53");
+      ellipse(x, y, 19, 16, "#78a68b");
+      ellipse(x - 5, y - 5, 12, 9, "#a1c49c");
+      ellipse(x + 8, y - 2, 8, 9, "#fff9de");
+      ellipse(x + 9 + Math.sign(enemy.vx) * 2, y - 1, 3, 4, "#34444b");
+    }
+
+    if (enemy.kind === "spike") {
+      const warning = enemy.mode === "warning";
+      ellipse(x, y + 4, 23, 17, warning ? "#f4b16e" : "#ba855b");
+      for (let i = -2; i <= 2; i++) {
+        triangle(x + i * 8 - 6, y - 5, x + i * 8, y - 27,
+          x + i * 8 + 6, y - 5, "#f6dfb5");
+      }
+      box(x - 16, y + 13, 12, 6, 3, "#5a5453");
+      box(x + 6, y + 13, 12, 6, 3, "#5a5453");
+      const gaze = Math.sign(enemy.vx) * 11;
+      ellipse(x + gaze, y + 1, 7, 7, "#fff3d8");
+      ellipse(x + gaze + Math.sign(enemy.vx) * 2, y + 2, 3, 3, "#8b3039");
+
+      if (warning) {
+        ctx.fillStyle = "#fff0aa";
+        ctx.font = "950 24px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("!", x, enemy.y - 22);
+      }
+    }
+
+    if (enemy.kind === "flyer") {
+      const flap = reducedMotion ? 0 : Math.sin(time * 16 + enemy.phase) * 10;
+      triangle(x - 7, y, x - 40, y - 15 + flap, x - 27, y + 15, "#806697");
+      triangle(x + 7, y, x + 40, y - 15 + flap, x + 27, y + 15, "#806697");
+      ellipse(x, y, 18, 15, "#a286b8");
+      triangle(x - 15, y - 8, x - 12, y - 27, x - 3, y - 11, "#bc9ac8");
+      triangle(x + 15, y - 8, x + 12, y - 27, x + 3, y - 11, "#bc9ac8");
+      ellipse(x - 6, y - 2, 5, 6, "#fff2c7");
+      ellipse(x + 6, y - 2, 5, 6, "#fff2c7");
+      ellipse(x - 6, y, 2, 3, "#493958");
+      ellipse(x + 6, y, 2, 3, "#493958");
+    }
+
+    if (enemy.kind === "sentry") {
+      box(enemy.x + 1, enemy.y + 16, 36, 27, 6, "#637a8d");
+      box(enemy.x + 5, enemy.y + 20, 28, 18, 4, "#849bac");
+      triangle(x - 13, enemy.y + 19, x, enemy.y - 5, x + 13, enemy.y + 19,
+        enemy.cooldown < .65 ? "#ffe09b" : "#a9d9db");
+      ellipse(x, enemy.y + 20, 8, 8, "#354a68");
+      ellipse(x, enemy.y + 20, 4, 4, enemy.cooldown < .65 ? "#ffb076" : "#f1d684");
+
+      if (enemy.hp === 2) {
+        box(enemy.x + 8, enemy.y + 46, 8, 3, 1, "#c9edf0");
+        box(enemy.x + 22, enemy.y + 46, 8, 3, 1, "#c9edf0");
+      }
+    }
+
+    ctx.restore();
+  }
+
+  function drawFlag(flag) {
+    if (!visible(flag.x, 65)) return;
+    box(flag.x, FLOOR - 102, 5, 102, 2, "#e5debf");
+    ellipse(flag.x + 2, FLOOR - 102, 5, 5, "#ffe5a4");
+    const wave = reducedMotion ? 0 : Math.sin(time * 4 + flag.x) * 4;
+    ctx.beginPath();
+    ctx.moveTo(flag.x + 5, FLOOR - 97);
+    ctx.quadraticCurveTo(flag.x + 29, FLOOR - 105 + wave, flag.x + 58, FLOOR - 93);
+    ctx.lineTo(flag.x + 50, FLOOR - 71);
+    ctx.quadraticCurveTo(flag.x + 27, FLOOR - 78 + wave, flag.x + 5, FLOOR - 73);
+    ctx.closePath();
+    ctx.fillStyle = flag.active ? "#74ccac" : "#a8b8b1";
+    ctx.fill();
+    box(flag.x - 9, FLOOR - 6, 23, 8, 3, "#82917d");
+  }
+
+  function drawArena() {
+    if (!visible(boss.arena, 1100)) return;
+
+    // Decorative arena pillars.
+    for (const x of [boss.arena + 15, level.length - 200]) {
+      box(x - 17, FLOOR - 150, 34, 150, 5, level.hills[1]);
+      box(x - 24, FLOOR - 156, 48, 16, 4, level.soil);
+      box(x - 23, FLOOR - 12, 46, 12, 3, level.soil);
+      ellipse(x, FLOOR - 173, 12, 16, boss.alive ? "#eeab7d" : "#b4f0c3");
+    }
+
+    if (arenaActive && boss.alive) {
+      const pulse = reducedMotion ? .35 : .25 + Math.sin(time * 6) * .1;
+      ctx.fillStyle = `rgba(255,191,131,${pulse})`;
+      ctx.fillRect(boss.arena + 15, 0, 5, FLOOR);
+      ctx.fillRect(level.length - 220, 0, 5, FLOOR);
+    }
+
+    const portalX = level.length - 92;
+    const portalY = FLOOR - 64;
+    ellipse(portalX, FLOOR + 2, 47, 9, "#20334635");
+    ellipse(portalX, portalY, 43, 68, "#ddd4bb");
+    ellipse(portalX, portalY, 34, 59, boss.alive ? "#526275" : "#6fc8bc");
+    ellipse(portalX, portalY, 26, 49, boss.alive ? "#3d4c62" : "#b9f2d5");
+
+    if (!boss.alive) {
+      ellipse(portalX, portalY, 16, 37, "#e8ffe0");
+      ctx.fillStyle = "#304c57";
+      ctx.font = "900 22px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("→", portalX, portalY + 7);
+    } else {
+      box(portalX - 9, portalY - 8, 18, 19, 4, "#b8bfba");
+      ctx.strokeStyle = "#b8bfba";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(portalX, portalY - 9, 7, Math.PI, 0);
+      ctx.stroke();
+    }
+  }
+
+  function drawBoss() {
+    if (!boss.alive || !visible(boss.x, boss.w, 150)) return;
+
+    const vulnerable = arenaActive && boss.phase === "rest";
+    const warning = arenaActive && boss.phase === "windup";
+    const x = boss.x + boss.w / 2;
+    const y = boss.y;
+    const bob = reducedMotion ? 0 : Math.sin(time * 3) * 2;
+
+    if (warning) {
+      ctx.save();
+      ctx.setLineDash([9, 7]);
+      ctx.strokeStyle = "#ffdb925f";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      if (boss.kind === "warden" || (boss.kind === "ember" && boss.cycle % 2 === 1)) {
+        ctx.moveTo(boss.arena + 25, FLOOR - 13);
+        ctx.lineTo(level.length - 220, FLOOR - 13);
+      } else {
+        ctx.moveTo(x, y + boss.h / 2);
+        ctx.lineTo(player.x + 15, player.y + 22);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.save();
+    if (boss.invulnerable > 0 && Math.floor(time * 18) % 2 === 0) ctx.globalAlpha = .5;
+
+    ellipse(x, FLOOR + 1, boss.w * .55, 10, "#26323c30");
+
+    if (boss.kind === "harpy") {
+      const wing = reducedMotion ? 0 : Math.sin(time * 9) * 18;
+      triangle(x - 27, y + 37, x - 111, y + 4 + wing, x - 81, y + 74, "#7b699f");
+      triangle(x + 27, y + 37, x + 111, y + 4 + wing, x + 81, y + 74, "#7b699f");
+      ellipse(x, y + 43, 52, 41, level.bossColor);
+      ellipse(x, y + 56, 33, 25, "#c3adce");
+      triangle(x - 13, y + 43, x, y + 62, x + 13, y + 43, "#e7b76c");
+    } else {
+      box(boss.x + 6, y + 14 + bob, boss.w - 12, boss.h - 22, 18, level.bossColor);
+      box(boss.x - 10, y + 42 + bob, 26, 52, 10, level.bossColor);
+      box(boss.x + boss.w - 16, y + 42 + bob, 26, 52, 10, level.bossColor);
+      box(boss.x + 9, y + boss.h - 21, 35, 23, 8, "#485660");
+      box(boss.x + boss.w - 44, y + boss.h - 21, 35, 23, 8, "#485660");
+      box(boss.x + 23, y + 57, boss.w - 46, 28, 8,
+        boss.kind === "ember" ? "#e79868" : "#a5bb9b");
+
+      if (boss.kind === "ember") {
+        triangle(boss.x + 12, y + 25, boss.x - 3, y - 16,
+          boss.x + 33, y + 12, "#e8cf9d");
+        triangle(boss.x + boss.w - 12, y + 25,
+          boss.x + boss.w + 3, y - 16,
+          boss.x + boss.w - 33, y + 12, "#e8cf9d");
+      }
+    }
+
+    // Eyes.
+    ellipse(x - 20, y + 35, 13, 11, "#fff0ca");
+    ellipse(x + 20, y + 35, 13, 11, "#fff0ca");
+    const look = player.x < boss.x ? -3 : 3;
+    ellipse(x - 20 + look, y + 36, 5, 6, "#463746");
+    ellipse(x + 20 + look, y + 36, 5, 6, "#463746");
+
+    // Crown is the visual weak point.
+    if (vulnerable) {
+      ellipse(x, y + 1, 43, 17, "#ffe6943f");
+      ellipse(x, y + 1, 33, 11, "#ffe6945f");
+    }
+
+    const crownColor = vulnerable ? "#ffe08a" : "#748aa1";
+    box(x - 29, y + 1, 58, 12, 3, crownColor);
+    triangle(x - 29, y + 3, x - 25, y - 15, x - 12, y + 3, crownColor);
+    triangle(x - 11, y + 3, x, y - 21, x + 11, y + 3, crownColor);
+    triangle(x + 12, y + 3, x + 25, y - 15, x + 29, y + 3, crownColor);
+    ellipse(x, y + 5, 5, 5, vulnerable ? "#fff7c6" : "#b1c9df");
+
+    ctx.restore();
+  }
+
+  function drawProjectiles() {
+    for (const shot of projectiles) {
+      if (!visible(shot.x, 30)) continue;
+      const hot = shot.kind === "fire" || shot.kind === "flame";
+      const color = hot ? "#ffc17b" : shot.kind === "feather" ? "#e1c7ff" : "#c6eee1";
+
+      if (shot.kind === "wave" || shot.kind === "flame") {
+        ellipse(shot.x, shot.y + 5, 24, 11, hot ? "#e9786766" : "#c8e4d255");
+        triangle(shot.x - 20, FLOOR, shot.x, FLOOR - 33,
+          shot.x + 20, FLOOR, color);
+      } else {
+        ellipse(shot.x, shot.y, shot.r + 5, shot.r + 5, hot ? "#ffb06a25" : "#cce8ff25");
+        ellipse(shot.x, shot.y, shot.r, shot.r, color);
+        ellipse(shot.x - 2, shot.y - 2, shot.r * .45, shot.r * .45, "#fff8dc");
+      }
+    }
+  }
+
+  function drawPlayer() {
+    ctx.save();
+    if (player.invulnerable > 0 && Math.floor(time * 14) % 2 === 0) ctx.globalAlpha = .45;
+    ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
+    ctx.scale(player.facing, 1);
+
+    const stride = player.grounded && !reducedMotion
+      ? Math.sin(player.stride) * Math.min(7, Math.abs(player.vx) / 30) : 0;
+
+    triangle(-8, -4, -27, Math.sin(time * 14) * (reducedMotion ? 0 : 3),
+      -19, 7, "#ffd77f");
+
+    box(-10 + stride * .45, 9, 8, 11, 3, "#2c4b61");
+    box(3 - stride * .45, 9, 8, player.grounded ? 11 : 7, 3, "#355d70");
+    box(-12 + stride * .45, 17, 13, 6, 3, "#2b3f4b");
+    box(2 - stride * .45, player.grounded ? 17 : 13, 13, 6, 3, "#2b3f4b");
+
+    box(-17, -3, 10, 17, 4, "#d4ad65");
+    box(-11, -5, 23, 22, 6, "#338e86");
+    box(-8, -4, 16, 6, 3, "#54bba6");
+    box(-12, -6, 25, 5, 2, "#ffd77f");
+
+    ctx.save();
+    ctx.translate(7, 0);
+    ctx.rotate(player.grounded ? stride * .07 : -.7);
+    box(-2, 0, 7, 12, 3, "#4dad9c");
+    ellipse(2, 12, 4, 4, "#f6d7af");
+    ctx.restore();
+
+    box(-9, -24, 24, 21, 7, "#f5d6ad");
+    box(-13, -29, 28, 13, 8, "#2c8987");
+    box(-13, -22, 34, 7, 3, "#46afa2");
+    box(-8, -28, 5, 8, 2, "#7bd1b7");
+    box(1, -17, 15, 9, 4, "#2c4b56");
+    box(3, -15, 10, 5, 2, "#b9eee1");
+    box(5, -15, 2, 4, 1, "#efffff");
+    ellipse(15, -8, 3, 3, "#edc397");
+
+    ctx.restore();
+  }
+
+  function drawEffects() {
+    for (const p of particles) {
+      if (!visible(p.x)) continue;
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      box(p.x, p.y, p.size, p.size, 1, p.color);
+    }
+    ctx.globalAlpha = 1;
+    ctx.font = "900 18px system-ui";
+    ctx.textAlign = "center";
+
+    for (const item of labels) {
+      if (!visible(item.x)) continue;
+      ctx.globalAlpha = Math.min(1, item.life * 3);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#364a5b";
+      ctx.strokeText(item.text, item.x, item.y);
+      ctx.fillStyle = item.color;
+      ctx.fillText(item.text, item.x, item.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawSigns() {
+    const signs = [
+      [190, "DOUBLE JUMP ↑↑"],
+      [boss.arena - 260, "GUARDIAN AHEAD →"]
+    ];
+    for (const [x, text] of signs) {
+      if (!visible(x, 145)) continue;
+      box(x + 60, FLOOR - 59, 8, 59, 2, "#8a806a");
+      box(x, FLOOR - 79, 137, 31, 5, "#eae1bd");
+      ctx.fillStyle = "#61776b";
+      ctx.font = "850 10px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(text, x + 68, FLOOR - 59);
+    }
+  }
+
+  function render() {
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.clearRect(0, 0, viewWidth, H);
+    drawBackground();
+
+    ctx.save();
+    const sx = shake > 0 && !reducedMotion ? (Math.random() - .5) * shake : 0;
+    const sy = shake > 0 && !reducedMotion ? (Math.random() - .5) * shake : 0;
+    ctx.translate(-camera + sx, sy);
+
+    decorations.forEach(drawDecoration);
+    drawSigns();
+    drawArena();
+    checkpoints.forEach(drawFlag);
+    platforms.forEach(drawPlatform);
+    coins.forEach(drawCoin);
+    enemies.forEach(drawEnemy);
+    drawBoss();
+    drawProjectiles();
+
+    if (player.grounded) {
+      ellipse(player.x + 15, player.y + player.h + 2, 18, 4, "#20344329");
+    }
+
+    drawPlayer();
+    drawEffects();
+    ctx.restore();
+  }
+
+  function frame(now) {
+    accumulator += Math.min(Math.max((now - lastFrame) / 1000, 0), .05);
+    lastFrame = now;
+
+    while (accumulator >= STEP) {
+      update(STEP);
+      accumulator -= STEP;
+    }
+
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Input ----------
+
+  function control(source, action, pressed) {
+    if (pressed) {
+      if (held.has(source)) return;
+      held.set(source, action);
+      if (action === "jump" && state === "playing") {
+        unlockAudio();
+        jumpBuffer = .14;
+      }
+    } else {
+      held.delete(source);
+    }
+  }
+
+  const bindings = {
+    ArrowLeft: "left", KeyA: "left",
+    ArrowRight: "right", KeyD: "right",
+    Space: "jump", ArrowUp: "jump", KeyW: "jump",
+    ShiftLeft: "run", ShiftRight: "run"
+  };
+
+  document.addEventListener("keydown", event => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    const onButton = event.target instanceof HTMLElement &&
+      event.target.closest("button");
+
+    // Keep normal keyboard activation on focused buttons.
+    if (onButton && ["Space", "Enter"].includes(event.code)) return;
+
+    if (bindings[event.code]) {
+      event.preventDefault();
+      if (event.repeat) return;
+
+      if (bindings[event.code] === "jump" && state !== "playing") {
+        primaryAction();
+      }
+
+      control(`key:${event.code}`, bindings[event.code], true);
+      return;
+    }
+
+    if (!["KeyP", "Escape", "KeyR", "KeyM", "Enter"].includes(event.code)) return;
+    event.preventDefault();
+    if (event.repeat) return;
+
+    if (event.code === "KeyP" || event.code === "Escape") togglePause();
+    if (event.code === "KeyR") retryLevel();
+    if (event.code === "KeyM") toggleSound();
+    if (event.code === "Enter" && state !== "playing") primaryAction();
+  });
+
+  document.addEventListener("keyup", event => {
+    if (bindings[event.code]) {
+      control(`key:${event.code}`, bindings[event.code], false);
+    }
+  });
+
+  function attachPointerControl(element, action) {
+    element.addEventListener("pointerdown", event => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      event.preventDefault();
+
+      if (action === "jump" && state !== "playing") primaryAction();
+      if (state !== "playing") return;
+
+      unlockAudio();
+      element.setPointerCapture(event.pointerId);
+      control(`pointer:${event.pointerId}`, action, true);
+      element.classList.add("active");
+    });
+
+    const release = event => {
+      control(`pointer:${event.pointerId}`, action, false);
+      element.classList.remove("active");
+    };
+
+    element.addEventListener("pointerup", release);
+    element.addEventListener("pointercancel", release);
+    element.addEventListener("lostpointercapture", release);
+  }
+
+  document.querySelectorAll("[data-control]").forEach(button => {
+    attachPointerControl(button, button.dataset.control);
+  });
+
+  // Clicking or tapping the playfield also jumps.
+  attachPointerControl(canvas, "jump");
+
+  ui.action.addEventListener("click", primaryAction);
+  ui.pause.addEventListener("click", togglePause);
+  ui.sound.addEventListener("click", toggleSound);
+
+  window.addEventListener("blur", () => {
+    clearInputs();
+    pauseGame();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      clearInputs();
+      pauseGame();
+    }
+    lastFrame = performance.now();
+    accumulator = 0;
+  });
+
+  buildWorld();
+  syncHUD();
+  syncSound();
+  syncPause();
+  lastFrame = performance.now();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
